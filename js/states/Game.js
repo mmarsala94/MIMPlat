@@ -8,7 +8,8 @@ MIMPlat.GameState = {
     this.currentLevel = level || 'NYC';
     this.artifactsCollected = artifactsCollected || [];
     this.enemyList = enemyList || [];
-    this.boothInteraction = false;
+    this.boothProperties = {};
+    this.boothProperties.interaction = false;
     //constants
     this.RUNNING_SPEED = 180;
     this.JUMPING_SPEED = 500;
@@ -44,7 +45,7 @@ MIMPlat.GameState = {
 
     this.player.body.velocity.x = 0;
 
-    if(!this.boothInteraction){
+    if(!this.boothProperties.interaction){
 
     if(this.cursors.left.isDown || this.player.customParams.isMovingLeft) {
       this.player.body.velocity.x = -this.RUNNING_SPEED;
@@ -80,7 +81,7 @@ MIMPlat.GameState = {
     }
 
     if(this.cursors.down.isDown && this.game.physics.arcade.overlap(this.player, this.booth)){
-      this.boothInteraction = true;
+      this.boothProperties.interaction = true;
       this.boothDialogue();
     }
 }
@@ -90,10 +91,6 @@ MIMPlat.GameState = {
       console.log('artifacts collected: ' + this.player.customParams.artifacts);
       this.artifact.kill();
       //console.log(this.player.customParams.artifact1);
-    }
-
-    if(this.player.bottom == this.game.world.height){
-      //this.gameOver();
     }
 
     //change level GOTTA TEST THIS
@@ -258,26 +255,15 @@ MIMPlat.GameState = {
     }, this);
   },
   createBooth: function(){
+
+
     if(this.findObjectsByType('booth', this.map, 'objectLayer').length > 0){
     var boothArr = this.findObjectsByType('booth', this.map, 'objectLayer');
-    this.booth = new MIMPlat.Booth(this.game, boothArr[0].x, boothArr[0].y, 'booth', boothArr[0].properties.choice0, boothArr[0].properties.choice1, boothArr[0].properties.choice2, this.map);
-    this.booth.inputEnabled = true;
-    this.booth.events.onInputUp.add(function () {
-        // When the paus button is pressed, we pause the game
-        this.game.paused = true;
+    this.booth = new MIMPlat.Booth(this.game, boothArr[0].x, boothArr[0].y, 'booth', boothArr[0].properties.landmarkName, boothArr[0].properties.choice0, boothArr[0].properties.choice1, boothArr[0].properties.choice2, this.map);
 
-        // Then add the menu
-        this.menu = game.add.sprite(this.game.width/2, this.game.height/2, 'actionButton');
-        this.menu.anchor.setTo(0.5, 0.5);
+    this.boothData = JSON.parse(this.game.cache.getText(this.booth.landmarkName));
 
-        // And a label to illustrate which menu item was chosen. (This is not necessary)
-        this.choiseLabel = game.add.text(this.game.width/2, this.game.height-150, 'Click outside menu to continue', { font: '30px Arial', fill: '#fff' });
-        this.choiseLabel.anchor.setTo(0.5, 0.5);
- });
-
-
-
-
+    console.log(this.boothData.initialOptions[0].text);
     // var boothArr = this.findObjectsByType('booth', this.map, 'objectLayer');
     // this.booth = this.add.sprite(boothArr[0].x, boothArr[0].y, 'booth');
     // this.game.physics.arcade.enable(this.booth);
@@ -292,29 +278,28 @@ MIMPlat.GameState = {
   }
   },
   boothDialogue: function(){
-    console.log('Hi, I\'m Tomoko! How are you darling?');
-    console.log(this.boothInteraction);
+    this.dialogueBoxInstance =  new MIMPlat.DialogueBox(this.game, this.boothData, this.boothProperties);
     //game over overlay
-    this.overlay = this.add.bitmapData(this.game.width, this.game.height);
-    this.overlay.ctx.fillStyle = '#000';
-    this.overlay.ctx.fillRect(this.game.width/2, this.game.height/2, this.game.width/2, this.game.height/3);
+    // this.overlay = this.add.bitmapData(this.game.width, this.game.height);
+    // this.overlay.ctx.fillStyle = '#000';
+    // this.overlay.ctx.fillRect(this.game.width/2, this.game.height/2, this.game.width/2, (this.game.height/3) + 23);
     
-    //Sprite for the overlay
-    this.panel = this.add.sprite(0, this.game.height, this.overlay);
-    this.panel.alpha = 0.9;
+    // //Sprite for the overlay
+    // this.panel = this.add.sprite(0, this.game.height, this.overlay);
+    // this.panel.alpha = 0.9;
 
-    //overlay raising tween animation
-     var gameOverPanel = this.add.tween(this.panel);
-     gameOverPanel.to({y: 0}, 500);
+    // //overlay raising tween animation
+    //  var gameOverPanel = this.add.tween(this.panel);
+    //  gameOverPanel.to({y: 0}, 500);
      
-    //Stop all movement after the overlay reaches the top
-     gameOverPanel.onComplete.add(function(){
-      console.log('this.boothInteraction inside of game over panel func is :' + this.boothInteraction);
-      this.pickOptions();
-      //this.game.paused = true;
-      }, this);
+    // //Stop all movement after the overlay reaches the top
+    //  gameOverPanel.onComplete.add(function(){
+    //   console.log('this.boothInteraction inside of game over panel func is :' + this.boothInteraction);
+    //   this.pickOptions();
+    //   //this.game.paused = true;
+    //   }, this);
 
-    gameOverPanel.start();
+    // gameOverPanel.start();
 
   },
   hitEnemy: function(player, enemy){
@@ -336,35 +321,44 @@ MIMPlat.GameState = {
   pickOptions: function(){
     console.log('Inside of pickOptions, this.boothInteraction is: ' + this.boothInteraction);
       var style = {font: '13px Comic Sans', fill:'#b3a595', wordWrap: true,
-      wordWrapWidth: this.game.width/1.5};
+      wordWrapWidth: 250};
 
-      this.option1 = this.add.text(this.game.width / 2, this.game.height / 2, this.booth.choices[0], style);
+      this.option1 = this.add.text(this.game.width / 2, this.game.height / 2, this.boothData.initialOptions[0].text, style);
       this.option1.inputEnabled = true;
       this.option1.events.onInputUp.add(function () {
         console.log('OPTION 1 CLICKED');
-        this.option1.destroy();
-        this.option2.destroy();
-        this.option3.destroy();
+        this.clearDialogueBox();
+        this.option1.text = this.boothData.initialOptions[0].nextDialogue.text;
+        //Show image of pamphlet. add click event. after click event, call setInitialOptions again.
       }, this);
 
-      this.option2 = this.add.text(this.game.width / 2, this.game.height / 2 + 23, this.booth.choices[1], style);
+      this.option2 = this.add.text(this.game.width / 2, this.game.height / 2 + 23, this.boothData.initialOptions[1].text, style);
       this.option2.inputEnabled = true;
       this.option2.events.onInputUp.add(function () {
         console.log('OPTION 2 CLICKED');
-        this.option1.destroy();
-        this.option2.destroy();
-        this.option3.destroy();
+        this.clearDialogueBox();
+        this.option1.text = this.boothData.initialOptions[1].nextDialogue.text;
+        //set option 1 = "Ok, but you'll have to prove your goods are authentic by answering a few questions."
+        this.option2.text = "  " + this.boothData.initialOptions[1].nextDialogue.option1.text;
+        //set option 2 = Indent, "Sure, ask away."
+        this.option3.text = "  " + this.boothData.initialOptions[1].nextDialogue.option2;
+        //set option 3 = Indent, "Uh, no, I think I'll come back later."
       }, this);
 
-      this.option3 = this.add.text(this.game.width / 2, this.game.height / 2 + 46, this.booth.choices[2], style);
+      this.option3 = this.add.text(this.game.width / 2, this.game.height / 2 + 46, this.boothData.initialOptions[2].text, style);
       this.option3.inputEnabled = true;
       this.option3.events.onInputUp.add(function () {
         console.log('OPTION 3 CLICKED');
         this.boothInteraction = false;
+        this.clearDialogueBox();
         this.panel.destroy();
-        this.option1.destroy();
-        this.option2.destroy();
-        this.option3.destroy();
       }, this);
+
+      this.option4 = this.add.text(this.game.width / 2, this.game.height / 2 + 69, this.boothData.initialOptions[2].text, style);
+  },
+  clearDialogueBox: function(){
+    this.option1.text = '';
+    this.option2.text = '';
+    this.option3.text = '';
   }
 };
